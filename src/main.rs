@@ -15,6 +15,7 @@ use eframe::epaint::PathShape;
 use flate2::read::GzDecoder;
 use opentelemetry_proto::tonic::collector::trace::v1::ExportTraceServiceRequest;
 
+use traviz::analyze_dependency::{AnalysisCardinality, AnalyzeDependencyParams, SourceScope};
 #[cfg(feature = "profiling")]
 use traviz::profiling;
 use traviz::{
@@ -391,6 +392,45 @@ struct Search {
 }
 
 impl App {
+    fn print_stats(&self) {
+        let mut analyzer = AnalyzeSpanModal::default();
+        analyzer.open(&self.all_spans_for_analysis);
+
+        let span_list = vec![
+            "preprocess_block",
+            "postprocess_ready_block",
+            "validate_chunk_state_witness",
+        ];
+
+        for span in span_list {
+            analyzer.perform_span_analysis(span);
+            analyzer.get_results().map(|results| {
+                println!("{}:\t\t{}", span, results);
+            });
+        }
+
+        let mut analyzer = AnalyzeDependencyModal::new();
+        analyzer.open(&self.all_spans_for_analysis);
+
+        let dependencies = vec![AnalyzeDependencyParams {
+            source_name: "send_chunk_state_witness".to_string(),
+            target_name: "validate_chunk_state_witness".to_string(),
+            threshold: 4,
+            analysis_cardinality: AnalysisCardinality::OneToN,
+            linking_attribute: "height,shard_id".to_string(),
+            group_by_attribute: "".to_string(),
+            source_scope: SourceScope::AllNodes,
+        }];
+
+        for dep in dependencies {
+            let (source, target) = (dep.source_name.clone(), dep.target_name.clone());
+            analyzer.perform_dependency_analysis(dep);
+            analyzer.get_results().map(|results| {
+                println!("{} -> {}: {:}", source, target, results);
+            });
+        }
+    }
+
     fn draw_top_bar(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             let open_file_button = ui.button("Open file");
@@ -407,6 +447,7 @@ impl App {
                         Ok(()) => println!("Successfully loaded file."),
                         Err(e) => println!("Error loading file: {e}"),
                     }
+                    self.print_stats();
                 }
             }
 

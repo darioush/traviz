@@ -203,7 +203,7 @@ impl AnalyzeSpanModal {
         true
     }
 
-    fn perform_span_analysis(&mut self, target_span_name: &str) {
+    pub fn perform_span_analysis(&mut self, target_span_name: &str) {
         let mut matching_spans = Vec::new();
         let target_name = target_span_name.to_string();
 
@@ -274,6 +274,12 @@ impl AnalyzeSpanModal {
                     .get(node_name)
                     .and_then(|stats| stats.get_max_span()),
             })
+    }
+
+    pub fn get_results(&self) -> Option<&Statistics> {
+        self.detailed_span_analysis
+            .as_ref()
+            .map(|result| &result.overall_stats.duration_stats)
     }
 
     pub fn show_modal(&mut self, ctx: &Context, max_width: f32, max_height: f32) {

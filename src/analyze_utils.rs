@@ -6,6 +6,7 @@ use eframe::egui::{
     TextEdit, Ui,
 };
 use std::collections::HashSet;
+use std::fmt::Display;
 use std::rc::Rc;
 
 /// Helper function to collect all spans in a span tree with deduplication (the same span won't appear twice).
@@ -113,6 +114,21 @@ pub struct Statistics {
     pub max: f64,
     pub total: f64,
     pub data_points: Vec<f64>,
+}
+
+impl Display for Statistics {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Mean: {}ms (+/- {}ms), Min: {}ms, Max: {}ms, Median: {}ms, Count: {}",
+            (self.mean() * MILLISECONDS_PER_SECOND).round() as u64,
+            (self.std_dev() * MILLISECONDS_PER_SECOND).round() as u64,
+            (self.min * MILLISECONDS_PER_SECOND).round() as u64,
+            (self.max * MILLISECONDS_PER_SECOND).round() as u64,
+            (self.median() * MILLISECONDS_PER_SECOND).round() as u64,
+            self.count,
+        )
+    }
 }
 
 impl Statistics {

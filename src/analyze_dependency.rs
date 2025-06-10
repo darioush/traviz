@@ -185,6 +185,16 @@ type PreparedAnalysisInput = (
 
 type NodeSpanMap = HashMap<String, Vec<Rc<Span>>>;
 
+pub struct AnalyzeDependencyParams {
+    pub source_name: String,
+    pub target_name: String,
+    pub threshold: usize,
+    pub linking_attribute: String,
+    pub group_by_attribute: String,
+    pub source_scope: SourceScope,
+    pub analysis_cardinality: AnalysisCardinality,
+}
+
 impl AnalyzeDependencyModal {
     pub fn new() -> Self {
         let initial_threshold = 1;
@@ -524,6 +534,23 @@ impl AnalyzeDependencyModal {
             Some(Value::StringValue(s)) => s.parse::<f64>().ok(),
             _ => None,
         }
+    }
+
+    pub fn perform_dependency_analysis(&mut self, params: AnalyzeDependencyParams) {
+        self.source_span_name = Some(params.source_name);
+        self.target_span_name = Some(params.target_name);
+        self.threshold = params.threshold;
+        self.linking_attribute = params.linking_attribute;
+        self.group_by_attribute = params.group_by_attribute;
+        self.analysis_cardinality = params.analysis_cardinality;
+        self.source_scope = params.source_scope;
+        self.analyze_dependencies();
+    }
+
+    pub fn get_results(&self) -> Option<&Statistics> {
+        self.analysis_result
+            .as_ref()
+            .map(|result| &result.overall_stats)
     }
 
     pub fn analyze_dependencies(&mut self) {
