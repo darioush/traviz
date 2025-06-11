@@ -1,5 +1,5 @@
 use crate::analyze_utils::{
-    calculate_table_column_widths, collect_matching_spans, draw_clickable_right_aligned_text_cell,
+    calculate_table_column_widths, draw_clickable_right_aligned_text_cell,
     draw_left_aligned_text_cell, process_spans_for_analysis, show_span_details, span_search_ui,
     span_selection_list_ui, Statistics,
 };
@@ -9,6 +9,7 @@ use eframe::egui::{
     Align, Button, Context, Grid, Label, Layout, Modal, RichText, ScrollArea, Sense, TextEdit, Ui,
     Vec2,
 };
+use opentelemetry_proto::tonic::common::v1::any_value;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -204,15 +205,41 @@ impl AnalyzeSpanModal {
     }
 
     pub fn perform_span_analysis(&mut self, target_span_name: &str) {
+        self.perform_span_analysis_with_attrs(target_span_name, &[]);
+    }
+
+    pub fn perform_span_analysis_with_attrs(
+        &mut self,
+        target_span_name: &str,
+        attrs: &[(String, String)],
+    ) {
         let mut matching_spans = Vec::new();
         let target_name = target_span_name.to_string();
 
         // Collect matching spans
-        collect_matching_spans(
-            &self.all_spans_for_analysis,
-            &target_name,
-            &mut matching_spans,
-        );
+        for span in &self.all_spans_for_analysis {
+            if span.original_name != target_name {
+                continue;
+            }
+            let mut has_attrs = true;
+            for (key, value) in attrs {
+                if let Some(Some(any_value::Value::StringValue(attr_value))) =
+                    span.attributes.get(key)
+                {
+                    if attr_value != value {
+                        has_attrs = false;
+                        break;
+                    }
+                } else {
+                    has_attrs = false;
+                    break;
+                }
+            }
+            if !has_attrs {
+                continue;
+            }
+            matching_spans.push(span.clone());
+        }
 
         // Filter by attributes if filter is specified
         if !self.attribute_filter.is_empty() {

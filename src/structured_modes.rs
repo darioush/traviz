@@ -294,6 +294,28 @@ pub fn block_production_structured_mode() -> StructuredMode {
                     group: false,
                 },
             },
+            // All spans with 'measure=apply' tag should be visible.
+            SpanRule {
+                name: "Show measure_apply spans".to_string(),
+                selector: SpanSelector {
+                    span_name_condition: MatchCondition::any(),
+                    node_name_condition: MatchCondition::any(),
+                    attribute_conditions: vec![(
+                        "measure".to_string(),
+                        MatchCondition {
+                            operator: MatchOperator::EqualTo,
+                            value: "apply".to_string(),
+                        },
+                    )],
+                },
+                decision: SpanDecision {
+                    visible: true,
+                    display_length: DisplayLength::Text,
+                    replace_name: String::new(),
+                    add_height_to_name: true,
+                    add_shard_id_to_name: true,
+                },
+            },
             // All spans with 'block_production' tag should be visible.
             SpanRule {
                 name: "Show block_production spans".to_string(),
@@ -345,8 +367,31 @@ fn block_production_without_vce_structured_mode() -> StructuredMode {
             group: false,
         },
     };
+    // All spans with 'measure=apply' tag should be visible.
+    let more_spans = SpanRule {
+        name: "Show measure_apply spans".to_string(),
+        selector: SpanSelector {
+            span_name_condition: MatchCondition::any(),
+            node_name_condition: MatchCondition::any(),
+            attribute_conditions: vec![(
+                "measure".to_string(),
+                MatchCondition {
+                    operator: MatchOperator::EqualTo,
+                    value: "apply".to_string(),
+                },
+            )],
+        },
+        decision: SpanDecision {
+            visible: true,
+            display_length: DisplayLength::Text,
+            replace_name: String::new(),
+            add_height_to_name: true,
+            add_shard_id_to_name: true,
+        },
+    };
 
     mode.span_rules = std::iter::once(hide_vce_rule)
+        .chain(std::iter::once(more_spans))
         .chain(mode.span_rules)
         .collect();
 

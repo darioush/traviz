@@ -396,14 +396,22 @@ impl App {
         let mut analyzer = AnalyzeSpanModal::default();
         analyzer.open(&self.all_spans_for_analysis);
 
-        let span_list = vec![
-            "preprocess_block",
-            "postprocess_ready_block",
-            "validate_chunk_state_witness",
+        let apply_new_chunk_attrs = vec![
+            ("apply_reason".to_string(), "UpdateTrackedShard".to_string()),
+            ("block_type".to_string(), "Optimistic".to_string()),
         ];
 
-        for span in span_list {
-            analyzer.perform_span_analysis(span);
+        let span_list: Vec<(&str, &[(String, String)])> = vec![
+            ("preprocess_block", &[]),
+            ("postprocess_ready_block", &[]),
+            ("produce_chunk", &[]),
+            ("process_optimistic_block", &[]),
+            ("apply_new_chunk", &apply_new_chunk_attrs),
+            ("validate_chunk_state_witness", &[]),
+        ];
+
+        for (span, attrs) in span_list {
+            analyzer.perform_span_analysis_with_attrs(span, attrs);
             analyzer.get_results().map(|results| {
                 println!("{}:\t\t{}", span, results);
             });
@@ -412,15 +420,35 @@ impl App {
         let mut analyzer = AnalyzeDependencyModal::new();
         analyzer.open(&self.all_spans_for_analysis);
 
-        let dependencies = vec![AnalyzeDependencyParams {
-            source_name: "send_chunk_state_witness".to_string(),
-            target_name: "validate_chunk_state_witness".to_string(),
-            threshold: 4,
-            analysis_cardinality: AnalysisCardinality::OneToN,
-            linking_attribute: "height,shard_id".to_string(),
-            group_by_attribute: "".to_string(),
-            source_scope: SourceScope::AllNodes,
-        }];
+        let dependencies = vec![
+            AnalyzeDependencyParams {
+                source_name: "send_chunk_state_witness".to_string(),
+                target_name: "validate_chunk_state_witness".to_string(),
+                threshold: 4,
+                analysis_cardinality: AnalysisCardinality::OneToN,
+                linking_attribute: "height,shard_id".to_string(),
+                group_by_attribute: "".to_string(),
+                source_scope: SourceScope::AllNodes,
+            },
+            AnalyzeDependencyParams {
+                source_name: "send_chunk_state_witness".to_string(),
+                target_name: "process_optimistic_block".to_string(),
+                threshold: 1,
+                analysis_cardinality: AnalysisCardinality::OneToN,
+                linking_attribute: "height".to_string(),
+                group_by_attribute: "".to_string(),
+                source_scope: SourceScope::SameNode,
+            },
+            AnalyzeDependencyParams {
+                source_name: "send_chunk_state_witness".to_string(),
+                target_name: "produce_block_on_head".to_string(),
+                threshold: 1,
+                analysis_cardinality: AnalysisCardinality::OneToN,
+                linking_attribute: "height".to_string(),
+                group_by_attribute: "".to_string(),
+                source_scope: SourceScope::SameNode,
+            },
+        ];
 
         for dep in dependencies {
             let (source, target) = (dep.source_name.clone(), dep.target_name.clone());
