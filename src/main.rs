@@ -401,7 +401,7 @@ impl App {
             ("block_type".to_string(), "Optimistic".to_string()),
         ];
 
-        let span_list: Vec<(&str, &[(String, String)])> = vec![
+        let mut span_list: Vec<(&str, &[(String, String)])> = vec![
             ("preprocess_block", &[]),
             ("postprocess_ready_block", &[]),
             ("produce_chunk", &[]),
@@ -409,6 +409,14 @@ impl App {
             ("apply_new_chunk", &apply_new_chunk_attrs),
             ("validate_chunk_state_witness", &[]),
         ];
+        for span in &self.all_spans_for_analysis {
+            if span.name.contains("witness")
+                && !span_list.iter().any(|(s, _)| *s == span.original_name)
+            {
+                eprintln!("Span: {}", span.original_name);
+                span_list.push((span.original_name.as_str(), &[]));
+            }
+        }
 
         for (span, attrs) in span_list {
             analyzer.perform_span_analysis_with_attrs(span, attrs);
