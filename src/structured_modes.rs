@@ -314,6 +314,7 @@ pub fn block_production_structured_mode() -> StructuredMode {
                     replace_name: String::new(),
                     add_height_to_name: true,
                     add_shard_id_to_name: true,
+                    group: false,
                 },
             },
             // All spans with 'block_production' tag should be visible.
@@ -387,6 +388,7 @@ fn block_production_without_vce_structured_mode() -> StructuredMode {
             replace_name: String::new(),
             add_height_to_name: true,
             add_shard_id_to_name: true,
+            group: false,
         },
     };
 
